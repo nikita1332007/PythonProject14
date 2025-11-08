@@ -16,7 +16,7 @@ Including another URLconf
 """
 from os import path
 
-from catalog import views
+from myshop import views
 
 urlpatterns = [
     path('', views.home_view, name='home'),
