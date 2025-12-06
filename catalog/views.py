@@ -1,12 +1,16 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView, DetailView, ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from datetime import datetime
-from catalog.models import Product
+from catalog.models import Product, Category
 from catalog.forms import ProductForm
+from catalog.services import get_products_by_category, get_products_by_category_cached
+
 
 class HomeView(TemplateView):
     template_name = 'catalog/home.html'
@@ -31,6 +35,7 @@ class ContactView(TemplateView):
         context['success_message'] = "Спасибо! Ваше сообщение отправлено."
         return self.render_to_response(context)
 
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class ProductDetailView(DetailView):
     model = Product
     template_name = 'catalog/product_detail.html'
@@ -100,3 +105,12 @@ def delete_product(request, product_id):
         return HttpResponseForbidden('Удалять продукт можно только владельцу или модератору.')
     product.delete()
     return redirect('product_list')
+
+
+def products_by_category_view(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+    products = get_products_by_category_cached(category_id)
+    return render(request, 'catalog/products_by_category.html', {
+        'category': category,
+        'products': products,
+    })
